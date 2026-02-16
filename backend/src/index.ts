@@ -2,10 +2,20 @@ import express from "express"
 import cors from "cors"
 import modulesRouter from "./routes/modules"
 import libraryRouter from "./routes/library"
+import path from "path"
+
+
 
 
 const app = express()
 
+
+app.use(
+  "/assets",
+  express.static(
+    path.join(__dirname, "../../data/modules")
+  )
+)
 app.use(cors())
 app.use(express.json())
 
