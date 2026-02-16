@@ -1,0 +1,18 @@
+{
+  "id": "01_dungeon_level",
+  "title": "Dungeon Level 1",
+  "content": [
+    {
+      "type": "markdown",
+      "text": "Cold air rolls up from the dark stairwell."
+    },
+    {
+      "type": "map",
+      "image": "level_1_map.jpg",
+      "pins": [
+        { "room": "01_entry_well" },
+        { "room": "02_hall_of_many_pillars" }
+      ]
+    }
+  ]
+}

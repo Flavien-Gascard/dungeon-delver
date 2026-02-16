@@ -1,0 +1,13 @@
+{
+  "id": "dungeon_of_the_mad_mage",
+  "title": "Dungeon of the Mad Mage",
+  "description": "A living chapter book for Undermountain.",
+  "version": "1.0.0",
+  "author": "Flavien Gascard",
+  "chapters": [
+    {
+      "id": "01_dungeon_level",
+      "title": "Dungeon Level 1"
+    }
+  ]
+}

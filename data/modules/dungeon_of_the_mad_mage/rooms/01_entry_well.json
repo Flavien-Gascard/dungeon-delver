@@ -1,0 +1,6 @@
+{
+  "id": "01_entry_well",
+  "name": "Entry Well",
+  "tags": ["damp", "vertical", "stone"],
+  "content": "A circular stone shaft descends into darkness.\n\nExits:\n[[room:02_hall_of_many_pillars]]"
+}

@@ -1,0 +1,7 @@
+{
+  "id": "ghoul",
+  "name": "Ghoul",
+  "type": "monster",
+  "tags": ["undead"],
+  "content": "An undead creature driven by hunger."
+}

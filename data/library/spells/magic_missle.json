@@ -1,0 +1,7 @@
+{
+  "id": "magic_missle",
+  "name": "Magic Missile",
+  "type": "spell",
+  "tags": ["evocation"],
+  "content": "A spell that launches a magical missile at a target."
+}

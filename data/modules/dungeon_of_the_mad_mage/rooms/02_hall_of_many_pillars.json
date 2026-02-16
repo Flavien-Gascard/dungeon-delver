@@ -1,0 +1,6 @@
+{
+  "id": "02_hall_of_many_pillars",
+  "name": "Hall of Many Pillars",
+  "tags": ["damp", "stone", "pillar"],
+  "content": "A long hall lined with many stone pillars.\n\nExits:\n[[room:01_entry_well]]"
+}
