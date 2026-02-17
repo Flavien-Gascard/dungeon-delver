@@ -69,39 +69,10 @@ function ContentBlock({ block, setReference }: ContentBlockProps) {
     // ---------------- MAP ----------------
     case "map":
       return (
-        <div style={{ margin: "1rem 0" }}>
-          <img
-            src={`http://localhost:4000/assets/${moduleId}/images/${block.image}`}
-            alt="Map"
-            style={{ maxWidth: "100%" }}
-          />
-
-          {/* Pins List */}
-          {block.pins && block.pins.length > 0 && (
-            <div style={{ marginTop: "1rem" }}>
-              <h3>🧭 Locations</h3>
-
-              {block.pins.map((pin: any, index: number) => (
-                <div
-                  key={index}
-                  style={{
-                    color: "cyan",
-                    cursor: "pointer",
-                    marginBottom: "0.5rem"
-                  }}
-                  onClick={() => {
-                    if (setReference) {
-                      setReference({ kind: "room", id: pin.room })
-                    }
-                  }}
-                >
-                  📍 {pin.room}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+      <MapBlock block={block} setReference={setReference} />
       )
+
+        
 
     // ---------------- DEFAULT ----------------
     default:
@@ -112,5 +83,68 @@ function ContentBlock({ block, setReference }: ContentBlockProps) {
       )
   }
 }
+
+import { useEffect, useState } from "react"
+
+function MapBlock({ block, setReference }: any) {
+  const { moduleId } = useParams()
+  const [roomNames, setRoomNames] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    if (!block.pins) return
+
+    block.pins.forEach((pin: any) => {
+      if (!roomNames[pin.room]) {
+        fetch(`/api/modules/${moduleId}/rooms/${pin.room}`)
+          .then(res => res.json())
+          .then(data => {
+            setRoomNames(prev => ({
+              ...prev,
+              [pin.room]: data.name
+            }))
+          })
+      }
+    })
+  }, [block.pins, moduleId])
+
+  return (
+    <div style={{ margin: "1rem 0" }}>
+      <img
+        src={`http://localhost:4000/assets/${moduleId}/images/${block.image}`}
+        alt="Map"
+        style={{ maxWidth: "100%" }}
+      />
+
+      {block.pins && block.pins.length > 0 && (
+        <div style={{ marginTop: "1rem" }}>
+          <h3>🧭 Locations</h3>
+
+          {block.pins.map((pin: any, index: number) => (
+            <div
+              key={index}
+              style={{
+                color: "cyan",
+                cursor: "pointer",
+                marginBottom: "0.5rem"
+              }}
+              onClick={() => {
+                if (setReference) {
+                  setReference({ kind: "room", id: pin.room })
+                }
+              }}
+            >
+              📍 {roomNames[pin.room] || pin.room}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+
+
+
+
 
 export default ContentBlock

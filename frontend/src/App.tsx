@@ -1,53 +1,118 @@
+// =============================================================
+// APP.TSX
+// Main layout controller (Router lives in main.tsx)
+// =============================================================
+
 import { Routes, Route } from "react-router-dom"
 import { useState } from "react"
 
-import HomePage from "./pages/HomePage"
-import ModulePage from "./pages/ModulePage"
 import ChapterPage from "./pages/ChapterPage"
-import ReferencePanel from "./components/ReferencePanel"
+import { getEntity, type Entity } from "./api/entityService"
+import ContentBlock from "./components/ContentBlock"
+import { Navigate } from "react-router-dom"
 
-export interface ReferenceState {
-  kind: string
-  id: string
-}
 
 function App() {
-  const [reference, setReference] = useState<ReferenceState | null>(null)
+  // ===========================================================
+  // REFERENCE PANEL STATE
+  // ===========================================================
+  const [referenceEntity, setReferenceEntity] = useState<Entity | null>(null)
+
+  // ===========================================================
+  // GLOBAL ENTITY HANDLER
+  // ===========================================================
+  async function handleReference(
+    moduleId: string,
+    ref: { kind: string; id: string } | null
+  ) {
+    if (!ref) return
+
+    const entity = await getEntity(moduleId, ref.kind, ref.id)
+
+    if (entity) {
+      setReferenceEntity(entity)
+    }
+  }
 
   return (
     <div style={{ display: "flex", height: "100vh" }}>
-      {/* MAIN PANEL */}
-      <div style={{ flex: 3, overflowY: "auto", padding: "2rem" }}>
+
+      {/* ================= MAIN PANEL ================= */}
+      <div
+        style={{
+          flex: 3,
+          padding: "2rem",
+          overflowY: "auto",
+          borderRight: "1px solid #333"
+        }}
+      >
         <Routes>
-          <Route path="/" element={<HomePage />} />
           <Route
-            path="/modules/:moduleId"
-            element={<ModulePage />}
+            path="/"
+            element={
+              <Navigate to="/modules/dungeon_of_the_mad_mage/chapters/01_dungeon_level" />
+            }
           />
+
           <Route
             path="/modules/:moduleId/chapters/:chapterId"
             element={
-              <ChapterPage setReference={setReference} />
+              <ChapterPage
+                setReference={(ref, moduleId) =>
+                  handleReference(moduleId!, ref)
+                }
+              />
             }
           />
         </Routes>
+
+
       </div>
 
-      {/* REFERENCE PANEL */}
+      {/* ================= REFERENCE PANEL ================= */}
       <div
         style={{
-          flex: 1,
-          borderLeft: "1px solid #333",
-          padding: "1rem",
+          flex: 2,
+          padding: "1.5rem",
           overflowY: "auto",
-          background: "#111",
-          color: "white"
+          backgroundColor: "#111"
         }}
       >
-        <ReferencePanel
-          reference={reference}
-          setReference={setReference}
-        />
+        <h2>📖 Reference</h2>
+
+        {!referenceEntity && (
+          <p style={{ color: "#777" }}>
+            Select a monster, trap, item, or faction to view details.
+          </p>
+        )}
+
+        {referenceEntity && (
+          <div>
+            <h3>{referenceEntity.name}</h3>
+
+            {Array.isArray(referenceEntity.content) ? (
+              referenceEntity.content.map((block: any, index: number) => (
+                <ContentBlock
+                  key={index}
+                  block={block}
+                  setReference={(ref) =>
+                    handleReference("", ref)
+                  }
+                />
+              ))
+            ) : (
+              <ContentBlock
+                block={{
+                  type: "markdown",
+                  text: referenceEntity.content
+                }}
+                setReference={(ref) =>
+                  handleReference("", ref)
+                }
+              />
+            )}
+          </div>
+        )}
       </div>
     </div>
   )

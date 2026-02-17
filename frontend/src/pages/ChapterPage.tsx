@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { useParams } from "react-router-dom"
 import ContentBlock from "../components/ContentBlock"
+import { getEntity, type Entity } from "../api/entityService"
 
 interface ChapterPageProps {
   setReference: (ref: { kind: string; id: string } | null) => void
@@ -12,17 +13,11 @@ interface Chapter {
   content: any[]
 }
 
-interface Room {
-  id: string
-  name: string
-  content: any
-}
-
 function ChapterPage({ setReference }: ChapterPageProps) {
   const { moduleId, chapterId } = useParams()
 
   const [chapter, setChapter] = useState<Chapter | null>(null)
-  const [currentRoom, setCurrentRoom] = useState<Room | null>(null)
+  const [currentRoom, setCurrentRoom] = useState<Entity | null>(null)
 
   // ------------------------------------------------------------
   // Load Chapter
@@ -39,17 +34,16 @@ function ChapterPage({ setReference }: ChapterPageProps) {
   }, [moduleId, chapterId])
 
   // ------------------------------------------------------------
-  // Handle Link Clicks
+  // Handle Link Clicks (Entity-driven)
   // ------------------------------------------------------------
-  function handleLink(ref: { kind: string; id: string } | null) {
-    if (!ref) return
+  async function handleLink(ref: { kind: string; id: string } | null) {
+    if (!ref || !moduleId) return
 
     if (ref.kind === "room") {
-      fetch(`/api/modules/${moduleId}/rooms/${ref.id}`)
-        .then(res => res.json())
-        .then(data => {
-          setCurrentRoom(data)
-        })
+      const entity = await getEntity(moduleId, "room", ref.id)
+      if (entity) {
+        setCurrentRoom(entity)
+      }
     } else {
       setReference(ref)
     }
@@ -64,7 +58,7 @@ function ChapterPage({ setReference }: ChapterPageProps) {
       {/* ---------------- Chapter Title ---------------- */}
       <h1>{chapter.title}</h1>
 
-      {/* ---------------- Chapter Content ---------------- */}
+      {/* ---------------- Chapter Blocks ---------------- */}
       {chapter.content?.map((block, index) => (
         <ContentBlock
           key={index}
@@ -73,7 +67,7 @@ function ChapterPage({ setReference }: ChapterPageProps) {
         />
       ))}
 
-      {/* ---------------- Inline Room Display ---------------- */}
+      {/* ---------------- Inline Room View ---------------- */}
       {currentRoom && (
         <div
           style={{
