@@ -18,7 +18,8 @@ export interface InitiativeEntry {
 export interface Room {
   id: string;
   name: string;
-  dmPassword: string;
+  dmPasswordHash: string;        // bcrypt hash
+  playerPasswordHash: string;    // bcrypt hash
   mapImage: string | null;       // filename under uploads/maps/
   gridSize: number;              // px per cell (default 50)
   fogCols: number;

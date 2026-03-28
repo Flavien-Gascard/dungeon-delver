@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import multer from 'multer';
 import path from 'path';
-import { getRoom, initFog } from '../roomStore';
+import { getRoom, initFog, verifyDmPassword } from '../roomStore';
 
 const router = Router();
 
@@ -33,13 +33,14 @@ const tokenUpload = multer({
   limits: { fileSize: 2 * 1024 * 1024 }, // 2 MB
 });
 
-// POST /api/upload/:roomId/map  (DM only — validated via socket, but we check dmPassword header here)
-router.post('/:roomId/map', mapUpload.single('map'), (req: Request, res: Response) => {
+// POST /api/upload/:roomId/map  (DM only)
+router.post('/:roomId/map', mapUpload.single('map'), async (req: Request, res: Response) => {
   const room = getRoom(req.params.roomId);
   if (!room) { res.status(404).json({ error: 'Room not found' }); return; }
 
   const { dmPassword, gridSize } = req.body as { dmPassword?: string; gridSize?: string };
-  if (dmPassword !== room.dmPassword) { res.status(403).json({ error: 'Invalid DM password' }); return; }
+  const valid = dmPassword ? await verifyDmPassword(room, dmPassword) : false;
+  if (!valid) { res.status(403).json({ error: 'Invalid DM password' }); return; }
   if (!req.file) { res.status(400).json({ error: 'No file uploaded' }); return; }
 
   room.mapImage = req.file.filename;
@@ -53,12 +54,13 @@ router.post('/:roomId/map', mapUpload.single('map'), (req: Request, res: Respons
 });
 
 // POST /api/upload/:roomId/fog-init  — client tells us the grid dimensions after image loads
-router.post('/:roomId/fog-init', (req: Request, res: Response) => {
+router.post('/:roomId/fog-init', async (req: Request, res: Response) => {
   const room = getRoom(req.params.roomId);
   if (!room) { res.status(404).json({ error: 'Room not found' }); return; }
 
   const { dmPassword, cols, rows } = req.body as { dmPassword?: string; cols?: number; rows?: number };
-  if (dmPassword !== room.dmPassword) { res.status(403).json({ error: 'Invalid DM password' }); return; }
+  const valid = dmPassword ? await verifyDmPassword(room, dmPassword) : false;
+  if (!valid) { res.status(403).json({ error: 'Invalid DM password' }); return; }
   if (!cols || !rows) { res.status(400).json({ error: 'cols and rows required' }); return; }
 
   initFog(room, cols, rows);

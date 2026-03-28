@@ -4,27 +4,28 @@ import { createRoom, getRoom, listRooms } from '../roomStore';
 
 const router = Router();
 
-// List all rooms (id + name only)
 router.get('/', (_req: Request, res: Response) => {
   res.json(listRooms());
 });
 
-// Create a room
-router.post('/', (req: Request, res: Response) => {
-  const { name, dmPassword } = req.body as { name?: string; dmPassword?: string };
+router.post('/', async (req: Request, res: Response) => {
+  const { name, dmPassword, playerPassword } = req.body as {
+    name?: string;
+    dmPassword?: string;
+    playerPassword?: string;
+  };
 
-  if (!name || !dmPassword) {
-    res.status(400).json({ error: 'name and dmPassword are required' });
+  if (!name || !dmPassword || !playerPassword) {
+    res.status(400).json({ error: 'name, dmPassword and playerPassword are required' });
     return;
   }
 
   const id = uuidv4().slice(0, 8).toUpperCase();
-  const room = createRoom(id, name.trim(), dmPassword);
+  const room = await createRoom(id, name.trim(), dmPassword, playerPassword);
 
   res.status(201).json({ id: room.id, name: room.name });
 });
 
-// Get a room (public info — no password, no fog details)
 router.get('/:roomId', (req: Request, res: Response) => {
   const room = getRoom(req.params.roomId);
   if (!room) {

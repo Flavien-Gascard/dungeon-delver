@@ -1,8 +1,10 @@
 import fs from 'fs';
 import path from 'path';
+import bcrypt from 'bcryptjs';
 import { Room, RoomPublicState, Token } from './types';
 
 const DB_PATH = path.join(__dirname, '../../data/rooms.json');
+const SALT_ROUNDS = 10;
 
 const rooms = new Map<string, Room>();
 
@@ -18,7 +20,7 @@ function save() {
   const serialized = Array.from(rooms.values()).map(r => ({
     ...r,
     tokens: Array.from(r.tokens.values()),
-    dmSocketId: null, // don't persist socket IDs
+    dmSocketId: null,
   }));
   fs.writeFileSync(DB_PATH, JSON.stringify(serialized, null, 2));
 }
@@ -39,16 +41,26 @@ function load() {
   }
 }
 
-// Load on startup
 load();
 
 // ── Room operations ───────────────────────────────────────────────────────────
 
-export function createRoom(id: string, name: string, dmPassword: string): Room {
+export async function createRoom(
+  id: string,
+  name: string,
+  dmPassword: string,
+  playerPassword: string,
+): Promise<Room> {
+  const [dmPasswordHash, playerPasswordHash] = await Promise.all([
+    bcrypt.hash(dmPassword, SALT_ROUNDS),
+    bcrypt.hash(playerPassword, SALT_ROUNDS),
+  ]);
+
   const room: Room = {
     id,
     name,
-    dmPassword,
+    dmPasswordHash,
+    playerPasswordHash,
     mapImage: null,
     gridSize: 50,
     fogCols: 0,
@@ -80,6 +92,14 @@ export function saveRoom(_room: Room): void {
   save();
 }
 
+export async function verifyDmPassword(room: Room, password: string): Promise<boolean> {
+  return bcrypt.compare(password, room.dmPasswordHash);
+}
+
+export async function verifyPlayerPassword(room: Room, password: string): Promise<boolean> {
+  return bcrypt.compare(password, room.playerPasswordHash);
+}
+
 /** Initialize fog grid when a map is loaded */
 export function initFog(room: Room, cols: number, rows: number): void {
   room.fogCols = cols;
@@ -88,7 +108,7 @@ export function initFog(room: Room, cols: number, rows: number): void {
   save();
 }
 
-/** Serialize room state for broadcast (strips password, converts Map to array) */
+/** Serialize room state for broadcast (strips passwords, converts Map to array) */
 export function toPublicState(room: Room): RoomPublicState {
   return {
     id: room.id,

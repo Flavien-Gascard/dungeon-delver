@@ -10,6 +10,7 @@ export interface SessionInfo {
   playerName: string;
   isDM: boolean;
   dmPassword?: string;
+  playerPassword?: string;
 }
 
 const SESSION_KEY = 'dd_session';
@@ -19,7 +20,9 @@ export default function App() {
   const [initialState, setInitialState] = useState<RoomPublicState | null>(null);
   const [rejoining, setRejoining] = useState(false);
 
-  // On mount, try to restore session from localStorage
+  // Read ?room=ID from URL for shareable links
+  const urlRoomId = new URLSearchParams(window.location.search).get('room') ?? undefined;
+
   useEffect(() => {
     const saved = localStorage.getItem(SESSION_KEY);
     if (!saved) return;
@@ -30,7 +33,8 @@ export default function App() {
     socket.connect();
     socket.emit('room:join', {
       roomId: s.roomId,
-      dmPassword: s.dmPassword ?? '',
+      dmPassword: s.dmPassword,
+      playerPassword: s.playerPassword,
       playerName: s.playerName,
     });
 
@@ -41,7 +45,6 @@ export default function App() {
     });
 
     socket.once('error', () => {
-      // Room gone (server restarted) — clear saved session
       localStorage.removeItem(SESSION_KEY);
       setRejoining(false);
       socket.disconnect();
@@ -49,6 +52,12 @@ export default function App() {
   }, []);
 
   function handleJoined(s: SessionInfo, state: RoomPublicState) {
+    // Clear room param from URL without reload
+    if (urlRoomId) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('room');
+      window.history.replaceState({}, '', url.toString());
+    }
     localStorage.setItem(SESSION_KEY, JSON.stringify(s));
     setSession(s);
     setInitialState(state);
@@ -62,13 +71,17 @@ export default function App() {
 
   if (rejoining) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-900 text-gray-400">
-        Reconnecting...
+      <div className="flex items-center justify-center h-screen bg-gray-950 text-amber-600"
+        style={{ backgroundImage: 'radial-gradient(ellipse at center, #1a0f0a 0%, #0a0a0f 100%)' }}>
+        <div className="text-center space-y-3">
+          <div className="text-4xl">⚔️</div>
+          <p className="uppercase tracking-widest text-sm">Returning to the realm...</p>
+        </div>
       </div>
     );
   }
 
   return session && initialState
     ? <GameRoom session={session} initialState={initialState} onLeave={handleLeave} />
-    : <Lobby onJoined={handleJoined} />;
+    : <Lobby onJoined={handleJoined} preselectedRoomId={urlRoomId} />;
 }

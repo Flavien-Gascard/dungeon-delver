@@ -1,6 +1,6 @@
 import { Server, Socket } from 'socket.io';
 import { v4 as uuidv4 } from 'uuid';
-import { getRoom, toPublicState, saveRoom } from '../roomStore';
+import { getRoom, toPublicState, saveRoom, verifyDmPassword, verifyPlayerPassword } from '../roomStore';
 import { DiceRollResult, InitiativeEntry, Token } from '../types';
 
 // Track which rooms each socket is in and whether they're DM
@@ -23,23 +23,34 @@ export function registerSocketHandlers(io: Server): void {
     console.log(`[socket] connected: ${socket.id}`);
 
     // ── JOIN ─────────────────────────────────────────────────────────────────
-    socket.on('room:join', (payload: { roomId: string; dmPassword?: string; playerName: string }) => {
+    socket.on('room:join', async (payload: { roomId: string; dmPassword?: string; playerPassword?: string; playerName: string }) => {
       const room = getRoom(payload.roomId);
       if (!room) {
         socket.emit('error', { message: 'Room not found' });
         return;
       }
 
-      const isDM = payload.dmPassword === room.dmPassword;
+      const isDM = payload.dmPassword
+        ? await verifyDmPassword(room, payload.dmPassword)
+        : false;
+
+      if (!isDM) {
+        const validPlayer = payload.playerPassword
+          ? await verifyPlayerPassword(room, payload.playerPassword)
+          : false;
+        if (!validPlayer) {
+          socket.emit('error', { message: 'Invalid password' });
+          return;
+        }
+      }
+
       if (isDM) room.dmSocketId = socket.id;
 
       socketMeta.set(socket.id, { roomId: room.id, isDM, name: payload.playerName });
       socket.join(room.id);
 
-      // Send full state to the joiner
       socket.emit('room:state', toPublicState(room));
 
-      // Announce to others
       socket.to(room.id).emit('room:player-joined', {
         socketId: socket.id,
         name: payload.playerName,
